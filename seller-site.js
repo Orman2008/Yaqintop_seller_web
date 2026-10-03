@@ -66,5 +66,5 @@
     for (const section of document.querySelectorAll('.reveal')) { section.classList.add('is-entering'); observer.observe(section); }
   }
   // A dashboard deep link still starts with an explicit authentication gate.
-  if (['dashboard','products','catalog','imports','chats','reviews','analytics','plan','store','profile','team','qr'].includes(location.hash.slice(1))) begin('login');
+  if (['dashboard','products','catalog','imports','chats','reviews','analytics','plan','store','profile','team','qr','branches'].includes(location.hash.slice(1))) begin('login');
 })();

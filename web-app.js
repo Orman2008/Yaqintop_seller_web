@@ -1,3 +1,4 @@
+import {branchesPage,bindBranches,mapPosLocations} from './seller-branches.js';
 import { appearanceSettings } from "./shared/appearance.js";
 import { mountNavigationMotion } from "./shared/motion.js";
 import {
@@ -49,6 +50,8 @@ let user = null,
   productSort = "new",
   productCategory = "",
   importBatch;
+let allBranches=false,branchPageData=null;
+const rootId=()=>Number(shop?.root_shop_id||shop?.business_id||shop?.id);
 const nav = [
   ["dashboard", "Обзор"],
   ["products", "Товары"],
@@ -63,10 +66,11 @@ const nav = [
   ["photo-navigation", "Фото-маршрут"],
   ["store", "Магазин"],
   ["team", "Команда"],
+  ["branches", "Филиалы"],
   ["profile", "Аккаунт"],
 ];
 $("#app").outerHTML =
-  `<a class="skip-link" href="#view">К содержимому</a><div class="web-shell"><aside class="web-sidebar"><a class="web-brand" href="#dashboard"><img src="assets/mapmarket-logo.png" alt="MapMarket"><span>MapMarket<br><small class="muted">Seller</small></span></a><nav aria-label="Кабинет продавца">${nav.map(([key, title]) => `<a href="#${key}" data-nav="${key}">${title}</a>`).join("")}</nav><div class="sidebar-footer">${supportLinks(base, "seller")}</div></aside><main class="web-main"><header class="web-header"><span id="storeName">Кабинет продавца</span><div class="actions">${button("Войти", "login")}${button("Выйти", "logout")}</div></header><section id="view" class="web-content" aria-live="polite"></section></main></div>`;
+  `<a class="skip-link" href="#view">К содержимому</a><div class="web-shell"><aside class="web-sidebar"><a class="web-brand" href="#dashboard"><img src="assets/mapmarket-logo.png" alt="MapMarket"><span>MapMarket<br><small class="muted">Seller</small></span></a><nav aria-label="Кабинет продавца">${nav.map(([key, title]) => `<a href="#${key}" data-nav="${key}">${title}</a>`).join("")}</nav><div class="sidebar-footer">${supportLinks(base, "seller")}</div></aside><main class="web-main"><header class="web-header"><span id="storeName">Кабинет продавца</span><div id="branchContext"></div><div class="actions">${button("Войти", "login")}${button("Выйти", "logout")}</div></header><section id="view" class="web-content" aria-live="polite"></section></main></div>`;
 const image = (url, title = "Фото товара") => {
   const src = mediaUrl(url, base, true);
   return src
@@ -159,6 +163,7 @@ function productTable() {
       (p) =>
         `${image(p.image_url, p.title)}<b>${esc(p.title)}</b><p class="muted">${esc(p.barcode || p.gtin || "Без штрихкода")}</p>`,
     ],
+    ["Филиал",p=>`${esc(p.branch_name||shop.name)}<p class="muted">${esc(p.branch_code||shop.store_code)}</p>`],
     ["Цена", (p) => money(p.price)],
     ["Остаток", (p) => esc(p.stock_quantity ?? "Не указан")],
     [
@@ -186,6 +191,7 @@ async function loadProducts() {
   return `${heading("Каталог товаров", shop.name)}<div class="toolbar">${button("Добавить вручную", "new-product")}<a class="button soft" href="#catalog">Из Global Catalog</a><a class="button soft" href="#imports">Импорт</a></div><form id="productSearch" class="toolbar">${field("Поиск", "q", filter)}${select("Категория", "category",[["","Все категории"],...Object.keys(tree)],productCategory)}${select("Сортировка","sort",[["new","Сначала новые"],["price_asc","Сначала дешевле"],["price_desc","Сначала дороже"],["rating","По рейтингу"]],productSort)}<button class="button">Применить</button></form>${productTable()}<div class="actions">${page ? button("Назад", "previous") : ""}${items.length === 24 ? button("Далее", "next") : ""}</div>`;
 }
 async function editor(product = {}) {
+  if(allBranches&&!product.id){toast("Выберите филиал для добавления товара");return;}
   if (!Object.keys(tree).length)
     tree = await api.request("/products/category-tree");
   const modal = dialog(
@@ -297,7 +303,7 @@ async function editor(product = {}) {
   form.onsubmit = (event) => {
     event.preventDefault();
     submit(form, async (values) => {
-      const data = productFormData(product, values, shop.id);
+      const data = productFormData(product, values, product.shop_id||shop.id);
       await api.request(
         product.id ? `/products/${Number(product.id)}` : "/products",
         { method: product.id ? "PUT" : "POST", body: data },
@@ -352,6 +358,7 @@ async function lookup(value) {
   }
 }
 async function imports() {
+  if(allBranches)throw new Error("Выберите филиал для импорта");
   const [providers, integrations] = await Promise.all([
     api.request("/api/integrations/providers"),
     api.request(`/api/stores/${shop.id}/integrations`),
@@ -365,7 +372,7 @@ async function imports() {
       [
         "Действия",
         (i) =>
-          `<div class="actions">${["test", "connect", "sync", "status", "health", "errors", "sync-history"].map((action) => button(action, "integration", `data-id="${esc(i.id)}" data-operation="${action}"`)).join("")}${button("Отключить", "disconnect", `data-id="${esc(i.id)}"`)}</div>`,
+          `<div class="actions">${["test", "connect", "sync", "status", "health", "errors", "sync-history", "locations"].map((action) => button(action, "integration", `data-id="${esc(i.id)}" data-operation="${action}"`)).join("")}${button("Отключить", "disconnect", `data-id="${esc(i.id)}"`)}</div>`,
       ],
     ],
   )}</section><section class="card"><h2>Подключить API</h2><form id="integrationCreate" class="form">${select(
@@ -415,6 +422,7 @@ async function previewImport(values) {
   });
 }
 async function storePage() {
+  if(allBranches)throw new Error("Выберите филиал для настройки магазина");
   return `${heading("Мой магазин", shop.name)}<div class="card"><form id="storeForm" class="form">${field("Название", "name", shop.name, "text", "required")}${field("Адрес", "address", shop.address, "text", "required")}${field("Телефон", "phone", shop.phone || "", "tel")}${field("Telegram", "telegram", shop.telegram || "")}${field("Часы работы", "working_hours", shop.working_hours || "")}${textarea("Описание", "description", shop.description)}${select("Сфера", "specialization_code", specializations, shop.specialization_code)}<div id="storePicker" class="web-map picker-map"></div><div class="form-row">${field("Широта", "latitude", shop.latitude, "number", 'required step="any" min="-90" max="90"')}${field("Долгота", "longitude", shop.longitude, "number", 'required step="any" min="-180" max="180"')}</div>${field("Логотип", "logo", "", "file", 'accept="image/jpeg,image/png,image/webp"')}<button class="button">Сохранить магазин</button></form></div>`;
 }
 async function team() {
@@ -483,23 +491,27 @@ async function go(next = route) {
     $("#view").innerHTML = empty("Нет доступного магазина");
     return;
   }
-  $("#storeName").innerHTML =
-    shops.length > 1
-      ? select(
-          "Магазин",
-          "active_shop",
-          shops.map((s) => [s.id, s.name]),
-          shop.id,
-        )
-      : esc(shop.name);
-  $("[name=active_shop]")?.addEventListener("change", async (e) => {
-    shop = shops.find((s) => Number(s.id) === Number(e.target.value));
-    page = 0;
-    await go();
-  });
+  $("#storeName").textContent=shop.business_name||shop.name;
+  const owner=shop.position==='owner';
+  const network=shops.filter(s=>Number(s.root_shop_id||s.business_id||s.id)===rootId());
+  $("#branchContext").innerHTML=owner?select("Филиал","active_branch",[["all","Все филиалы"],...network.filter(s=>!s.subscription_locked&&s.branch_status!=='archived').map(s=>[s.id,(s.root_shop_id?s.branch_display_name||s.name:'Основной')+' — '+(s.store_code||'')+' · '+(s.address||'')])],allBranches?'all':shop.id):'<span>Филиал: '+esc(shop.name)+' · '+esc(shop.store_code)+'</span>';
+  $("[name=active_branch]")?.addEventListener("change",async e=>{allBranches=e.target.value==='all';if(!allBranches)shop=shops.find(s=>Number(s.id)===Number(e.target.value));else shop=shops.find(s=>Number(s.id)===rootId())||shop;page=0;await go();});
   try {
     let html = "";
-    if (route === "products") html = await loadProducts();
+    if(route==='branches'){
+      if(!owner)throw new Error('Управление филиалами доступно владельцу бизнеса.');
+      branchPageData=await branchesPage(api,rootId());html=branchPageData.html;
+    }
+    else if(allBranches&&['products','team','reviews','qr','imports'].includes(route)){
+      const sections={products:'products',team:'team',reviews:'reviews',qr:'qr',imports:'imports'};
+      const data=await api.request('/shops/'+rootId()+'/network/'+sections[route]+'?branch_id=all&limit=24&offset='+page*24);
+      items=rows(data);html=heading(nav.find(n=>n[0]===route)[1],'Все филиалы · выберите конкретный филиал для создания записи');
+      if(route==='products')html+=productTable();
+      else html+=table(items,[['Филиал',p=>esc(p.branch_name)+' · '+esc(p.branch_code)],['Запись',p=>esc(p.name||p.product_name||p.text||p.id)],['Статус / роль',p=>esc(p.status||p.role||'')]]);
+      html+='<div class="actions">'+(page?button('Назад','previous'):'')+(data.has_more?button('Далее','next'):'')+'</div>';
+    }
+    else if(allBranches&&['catalog','store','photo-navigation','broadcasts'].includes(route)) html=heading(nav.find(n=>n[0]===route)?.[1]||'Магазин')+'<p class="notice">Выберите конкретный филиал в поле «Филиал» для этой операции.</p>';
+    else if (route === "products") html = await loadProducts();
     else if (route === "catalog") html = await catalog();
     else if (route === "imports") html = await imports();
     else if (route === "store") html = await storePage();
@@ -530,7 +542,7 @@ async function go(next = route) {
         '<p>Расширенная аналитика недоступна вашей роли.</p><a class="button" href="#products">Открыть товары</a>';
     } else if (route === "analytics" || route === "dashboard") {
       const data = await api.request(
-        `/analytics/${shop.id}?days=${analyticsDays}`,
+        `/analytics/${shop.id}?days=${analyticsDays}${allBranches?"&branch_id=all":""}`,
       );
       html =
         heading(
@@ -652,11 +664,12 @@ async function go(next = route) {
         api,
         baseUrl: base,
         role: "seller",
+        threadQuery:allBranches?{root_store_id:rootId(),branch_id:"all"}:{shop_id:shop.id,branch_id:shop.id},
       });
       if (version !== generation) dispose();
       else cleanup = dispose;
     }
-    if (route === "photo-navigation") {
+    if (route === "photo-navigation" && !allBranches) {
       const dispose = await mountPhotoEditor($("#photoEditor"), {
         api,
         base,
@@ -665,7 +678,9 @@ async function go(next = route) {
       if (version !== generation) dispose();
       else cleanup = dispose;
     }
-    if (route === "store") {
+    if(owner)$("#view").insertAdjacentHTML("beforeend",'<p><a href="#branches">Управление филиалами →</a></p>');
+    if(route==='branches')bindBranches($("#view"),{api,root:rootId(),branches:branchPageData.branches,reload:async()=>{shops=rows(await api.request('/users/me/shops'));await go();}});
+    if (route === "store" && !allBranches) {
       cleanup = locationPicker(
         $("#storePicker"),
         (p) => {
@@ -920,6 +935,7 @@ document.addEventListener("click", async (event) => {
     }
     if (action === "integration") {
       const operation = target.dataset.operation;
+      if(operation === "locations"){await mapPosLocations({api,shop,shops,id});return;}
       const data = await api.request(
         `/api/stores/${shop.id}/integrations/${encodeURIComponent(id)}/${operation}`,
         {
