@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="shared/appearance-init.js"></script>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0b8fd1" />
+    <meta
+      name="description"
+      content="MapMarket Seller — управление магазином и каталогом товаров"
+    />
+    <title>MapMarket Seller</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="shared/vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="shared/design.css" />
+    <link rel="stylesheet" href="shared/appearance.css" />
+  </head>
+  <body>
+    <div id="app"><p role="status">Загрузка MapMarket Seller…</p></div>
+    <div id="modalRoot"></div>
+    <div id="toastRoot" class="toast-root"></div>
+    <noscript>Для работы кабинета нужен JavaScript.</noscript>
+    <script src="shared/vendor/leaflet/leaflet.js"></script>
+    <script src="runtime-config.js"></script>
+    <script type="module" src="web-app.js"></script>
+  </body>
+</html>
