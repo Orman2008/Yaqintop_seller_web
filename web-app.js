@@ -46,9 +46,11 @@ let user = null,
   items = [],
   page = 0,
   filter = "",
+  productSort = "new",
+  productCategory = "",
   importBatch;
 const nav = [
-  ["dashboard", "Главная"],
+  ["dashboard", "Обзор"],
   ["products", "Товары"],
   ["catalog", "Каталог MapMarket"],
   ["imports", "Импорт и API"],
@@ -72,6 +74,7 @@ const image = (url, title = "Фото товара") => {
     : "";
 };
 const endpoint = (suffix) => `/shops/${Number(shop.id)}${suffix}`;
+export function beginSellerLogin() { login(); }
 function login() {
   authFlow({
     api,
@@ -81,6 +84,8 @@ function login() {
     onSession: async (payload) => {
       user = payload.user;
       shop = payload.shop;
+      route = "dashboard";
+      window.history.replaceState(null, "", location.pathname + location.search + "#dashboard");
       try {
         if (!shop) {
           const me = await api.request("/users/me");
@@ -89,9 +94,11 @@ function login() {
         }
         shops = rows(await api.request("/users/me/shops"));
         shop = shops.find((s) => Number(s.id) === Number(shop?.id)) || shop;
-        await go();
+        await go("dashboard");
+        window.dispatchEvent(new window.Event("seller-authenticated"));
       } catch (error) {
         $("#view").innerHTML = errorView(error);
+        window.dispatchEvent(new window.Event("seller-authenticated"));
       }
     },
   });
@@ -124,6 +131,12 @@ const metricLabels = {
 };
 let integrationProviders = [];
 let analyticsDays = 30;
+function timelineChart(points) {
+  const data = rows(points).filter(point => Number.isFinite(Number(point.value)));
+  if (!data.length) return '<p class="empty">За этот период нет данных для графика.</p>';
+  const max = Math.max(1,...data.map(point => Number(point.value)));
+  return '<div class="dashboard-bars" role="img" aria-label="Просмотры магазина по дням">' + data.map(point => `<div title="${esc(point.day)}: ${Number(point.value)}"><span class="chart-bar" style="height:${Math.max(0,Number(point.value))*100/max}%"></span><small>${esc(point.day)}</small></div>`).join('') + '</div>';
+}
 function infoCards(data) {
   return `<div class="stats">${Object.entries(data || {})
     .filter(([, v]) => typeof v === "number" || typeof v === "string")
@@ -134,9 +147,9 @@ function infoCards(data) {
     )
     .join("")}</div>`;
 }
-function table(values, columns) {
+function table(values, columns, productRows = false) {
   return values.length
-    ? `<div class="table-wrap"><table><thead><tr>${columns.map(([name]) => `<th scope="col">${esc(name)}</th>`).join("")}</tr></thead><tbody>${values.map((item) => `<tr>${columns.map(([, render]) => `<td>${render(item)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`
+    ? `<div class="table-wrap"><table><thead><tr>${columns.map(([name]) => `<th scope="col">${esc(name)}</th>`).join("")}</tr></thead><tbody>${values.map((item) => `<tr${productRows ? ' data-product-row' : ''}>${columns.map(([name, render]) => `<td>${productRows ? '<span class="product-mobile-label">'+esc(name)+'</span>' : ''}${render(item)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`
     : empty();
 }
 function productTable() {
@@ -147,6 +160,7 @@ function productTable() {
         `${image(p.image_url, p.title)}<b>${esc(p.title)}</b><p class="muted">${esc(p.barcode || p.gtin || "Без штрихкода")}</p>`,
     ],
     ["Цена", (p) => money(p.price)],
+    ["Остаток", (p) => esc(p.stock_quantity ?? "Не указан")],
     [
       "Наличие",
       (p) =>
@@ -157,18 +171,19 @@ function productTable() {
       (p) =>
         `<div class="actions">${button("Изменить", "edit-product", `data-id="${Number(p.id)}"`)}${button("Наличие", "stock", `data-id="${Number(p.id)}"`)}${button("Удалить", "delete-product", `data-id="${Number(p.id)}"`)}</div>`,
     ],
-  ]);
+  ], true);
 }
 async function loadProducts() {
   const version = generation;
+  if (!Object.keys(tree).length) tree = await api.request("/products/category-tree");
   const fetched = rows(
     await api.request(
-      `/products?${query({ shop_id: shop.id, q: filter, limit: 24, offset: page * 24 })}`,
+      `/products?${query({ shop_id: shop.id, q: filter, category: productCategory, sort: productSort, limit: 24, offset: page * 24 })}`,
     ),
   );
   if (version !== generation) throw new Error("Запрос устарел");
   items = fetched;
-  return `${heading("Каталог товаров", shop.name)}<div class="toolbar">${button("Добавить вручную", "new-product")}<form id="productSearch" class="actions">${field("Поиск", "q", filter)}<button class="button">Найти</button></form></div>${productTable()}<div class="actions">${page ? button("Назад", "previous") : ""}${items.length === 24 ? button("Далее", "next") : ""}</div>`;
+  return `${heading("Каталог товаров", shop.name)}<div class="toolbar">${button("Добавить вручную", "new-product")}<a class="button soft" href="#catalog">Из Global Catalog</a><a class="button soft" href="#imports">Импорт</a></div><form id="productSearch" class="toolbar">${field("Поиск", "q", filter)}${select("Категория", "category",[["","Все категории"],...Object.keys(tree)],productCategory)}${select("Сортировка","sort",[["new","Сначала новые"],["price_asc","Сначала дешевле"],["price_desc","Сначала дороже"],["rating","По рейтингу"]],productSort)}<button class="button">Применить</button></form>${productTable()}<div class="actions">${page ? button("Назад", "previous") : ""}${items.length === 24 ? button("Далее", "next") : ""}</div>`;
 }
 async function editor(product = {}) {
   if (!Object.keys(tree).length)
@@ -447,10 +462,12 @@ async function broadcasts() {
   }</div></section>`;
 }
 async function go(next = route) {
+  if (!nav.some(([name]) => name === next)) next = "dashboard";
   route = next;
   const version = ++generation;
-  cleanup();
+  const disposePrevious = cleanup;
   cleanup = () => {};
+  disposePrevious();
   document.title = `${nav.find((n) => n[0] === route)?.[1] || "Кабинет"} · MapMarket Seller`;
   for (const link of document.querySelectorAll("[data-nav]"))
     link.classList.toggle("active", link.dataset.nav === route);
@@ -528,6 +545,13 @@ async function go(next = route) {
             ["Просмотры", (p) => esc(p.views ?? p.view_count ?? "—")],
           ],
         )}</section>`;
+      if (route === "dashboard") {
+        const plan = await api.request(endpoint("/plan"));
+        const greeting = new Date().getHours() < 12 ? "Доброе утро" : new Date().getHours() < 18 ? "Добрый день" : "Добрый вечер";
+        html = `<div class="dashboard-top"><div><p class="eyebrow">БИЗНЕС-ЦЕНТР</p><h1>${greeting}, ${esc(shop.name)}</h1><p>Последние ${analyticsDays} дней · реальные данные магазина</p></div><div class="actions">${button("+ Добавить товар", "new-product")}<a class="button soft" href="#imports">Импортировать</a></div></div>` +
+          infoCards({store_views:data.overview?.store_views ?? "Нет данных",product_views:data.overview?.product_views ?? "Нет данных",routes:data.overview?.routes ?? "Нет данных",product_usage:plan.product_usage ?? "Нет данных"}) +
+          `<div class="dashboard-grid"><section class="card dashboard-chart"><h2>Просмотры магазина</h2><p class="muted">По дням · <a href="#analytics">Открыть аналитику ↗</a></p>${timelineChart(data.timeline)}</section><section class="card dashboard-store-state"><h2>Состояние магазина</h2><p>Тариф <b>${esc(String(plan.current_plan || "FREE").replace("BUSINESS_PLUS","BUSINESS PLUS"))}</b></p><p>Товары <b>${esc(plan.product_usage ?? "—")} / ${plan.product_limit === -1 ? "Без лимита" : esc(plan.product_limit ?? "—")}</b></p><p>Адрес <b>${esc(shop.address || "Не указан")}</b></p><p>Проверка <b>${esc(shop.verification_status || "Нет данных")}</b></p><a href="#store">Настройки магазина ↗</a></section></div><section class="section"><h2>Популярные товары</h2>${table(rows(data,"popular_products"),[["Товар",p=>esc(p.title||p.product_title)],["Просмотры",p=>esc(p.views??p.view_count??"—")]])}</section><section class="card"><h2>Работа с магазином</h2><p class="muted">Цены, наличие и сообщения покупателям — из одного кабинета.</p><div class="actions"><a class="button soft" href="#products">Товары</a><a class="button soft" href="#chats">Чаты</a><a class="button soft" href="#reviews">Отзывы</a></div></section>`;
+      }
       if (route === "analytics") {
         html +=
           `<form id="analyticsPeriod" class="toolbar">${select(
@@ -653,6 +677,8 @@ async function go(next = route) {
     }
     bindForm("#productSearch", async (values) => {
       filter = values.q;
+      productCategory = values.category;
+      productSort = values.sort;
       page = 0;
       await go();
     });
@@ -803,7 +829,12 @@ document.addEventListener("click", async (event) => {
       await api.logout();
       user = shop = null;
       shops = [];
-      return go();
+      const disposePrevious = cleanup;
+      cleanup = () => {};
+      disposePrevious();
+      $("#view").replaceChildren();
+      window.dispatchEvent(new window.Event("seller-signed-out"));
+      return;
     }
     if (action === "new-product")
       return editor(filter.match(/^\d{8,14}$/) ? { barcode: filter } : {});
@@ -1039,7 +1070,7 @@ $(".skip-link").onclick = (event) => {
 };
 mountNavigationMotion(document.querySelector(".web-sidebar nav"));
 window.addEventListener("hashchange", () =>
-  go(location.hash.slice(1) || "dashboard"),
+  { const next = location.hash.slice(1); if (nav.some(([name]) => name === next)) go(next); },
 );
 window.addEventListener("offline", () =>
   toast("Нет соединения. Изменения ещё не отправлены на сервер."),
