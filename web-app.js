@@ -149,7 +149,7 @@ function infoCards(data) {
     .slice(0, 16)
     .map(
       ([key, value]) =>
-        `<article class="card stat"><span class="muted">${esc(metricLabels[key] || key.replaceAll("_", " "))}</span><b>${esc(value)}</b></article>`,
+        `<article class="card stat"><span class="muted">${esc(metricLabels[key] || key.replaceAll("_", " "))}</span><b>${esc(key === "current_plan" ? String(value).replaceAll("_", " ") : key === "product_limit" && Number(value) === -1 ? "Без лимита" : value)}</b></article>`,
     )
     .join("")}</div>`;
 }
@@ -443,7 +443,7 @@ async function team() {
   if(shop.position==='owner'){
     const setting=await api.request(endpoint('/staff-permissions'));
     const labels={products_view:'Просмотр товаров',products:'Изменение предложений',profile:'Профиль филиала',staff:'Управление командой',chats:'Чаты',analytics:'Аналитика',reviews:'Отзывы',qr:'QR',broadcasts:'Рассылки',sales:'Продажи',ai:'AI'};
-    permissionForm='<section class="card"><h2>Права этого филиала</h2><form id="branchPermissions" class="form">'+['seller','manager'].map(role=>'<fieldset><legend>'+esc(role==='manager'?'Менеджер':'Сотрудник')+'</legend>'+Object.entries(labels).map(([key,label])=>'<label><input type="checkbox" data-permission-role="'+role+'" data-permission="'+key+'" '+(setting.permissions?.[role]?.[key]?'checked':'')+'>'+esc(label)+'</label>').join('')+'</fieldset>').join('')+'<button class="button">Сохранить права</button></form></section>';
+    permissionForm='<section class="card"><h2>Права этого филиала</h2><form id="branchPermissions" class="form">'+['seller','manager'].map(role=>'<fieldset class="permission-group"><legend>'+esc(role==='manager'?'Менеджер':'Сотрудник')+'</legend><div class="permission-options">'+Object.entries(labels).map(([key,label])=>'<label><input type="checkbox" data-permission-role="'+role+'" data-permission="'+key+'" '+(setting.permissions?.[role]?.[key]?'checked':'')+'>'+esc(label)+'</label>').join('')+'</div></fieldset>').join('')+'<button class="button">Сохранить права</button></form></section>';
   }
   return `${permissionForm}${heading("Команда", "Права проверяются сервером для выбранного филиала")}<p class="notice">Код магазина: ${esc(shop.store_code || "Откройте профиль магазина в приложении")}</p>${table(
     rows(members, "members"),
@@ -516,6 +516,29 @@ async function go(next = route) {
   });
   const network=shops.filter(s=>Number(s.root_shop_id||s.business_id||s.id)===rootId());
   $("#branchContext").innerHTML=owner?select("Филиал","active_branch",[["all","Все филиалы"],...network.filter(s=>!s.subscription_locked&&s.branch_status!=='archived').map(s=>[s.id,(s.root_shop_id?s.branch_display_name||s.name:'Основной')+' — '+(s.store_code||'')+' · '+(s.address||'')])],allBranches?'all':shop.id):'<span>Филиал: '+esc(shop.name)+' · '+esc(shop.store_code)+'</span>';
+  const branchSelect = $("[name=active_branch]");
+  if (branchSelect) {
+    branchSelect.hidden = true;
+    const picker = document.createElement("details");
+    picker.className = "branch-picker";
+    picker.innerHTML = `<summary><span>${esc(branchSelect.selectedOptions[0]?.textContent || "Выберите филиал")}</span><span aria-hidden="true">⌄</span></summary><div class="branch-picker-menu" role="group" aria-label="Выбор филиала">${Array.from(branchSelect.options).map(option => `<label class="branch-picker-option"><input type="radio" name="branch_picker" value="${esc(option.value)}" ${option.selected ? "checked" : ""}><span>${esc(option.textContent)}</span></label>`).join("")}</div>`;
+    const branchField = document.createElement("div");
+    branchField.className = "field";
+    const caption = document.createElement("span");
+    caption.textContent = "Филиал";
+    branchSelect.parentElement.replaceWith(branchField);
+    branchField.append(caption, branchSelect, picker);
+    picker.addEventListener("change", event => {
+      if (!event.target.matches('input[name="branch_picker"]')) return;
+      branchSelect.value = event.target.value;
+      picker.open = false;
+      branchSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    picker.addEventListener("keydown", event => {
+      if (event.key === "Escape") { picker.open = false; picker.querySelector("summary").focus(); }
+    });
+
+  }
   $("[name=active_branch]")?.addEventListener("change",async e=>{allBranches=e.target.value==='all';if(!allBranches)shop=shops.find(s=>Number(s.id)===Number(e.target.value));else shop=shops.find(s=>Number(s.id)===rootId())||shop;page=0;await go();});
   try {
     const permission=routePermission[route];
@@ -648,15 +671,15 @@ async function go(next = route) {
                 ...p,
               })),
           [
-            ["План", (p) => esc(p.display_name || p.name)],
+            ["План", (p) => esc(String(p.display_name || p.name || "").replaceAll("_", " "))],
             [
               "Лимит товаров",
-              (p) => esc(p.productLimit ?? p.product_limit ?? p.max_products),
+              (p) => Number(p.productLimit ?? p.product_limit ?? p.max_products) === -1 ? "Без лимита" : esc(p.productLimit ?? p.product_limit ?? p.max_products),
             ],
             ["Стоимость", (p) => money(p.price || p.monthly_price)],
           ],
         ) +
-        `<p class="notice">Оплата и тестовое переключение тарифов не добавляются в этом веб-спринте. ${supportLinks(base, "seller")}</p>`;
+        `<div class="notice"><p>Для подключения или изменения тарифа обратитесь в поддержку.</p>${supportLinks(base, "seller")}</div>`;
     } else if (route === "qr") {
       const data = await api.request(endpoint("/qr/customers"));
       html =
