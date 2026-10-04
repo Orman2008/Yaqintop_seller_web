@@ -10,3 +10,6 @@
 
 #sellerDashboardMount .web-shell{display:block}@media(max-width:1100px){#sellerDashboardMount .web-sidebar{height:auto;position:static}#sellerDashboardMount .web-sidebar nav{display:flex;overflow:auto;gap:7px}#sellerDashboardMount .web-sidebar nav a{white-space:nowrap}#sellerDashboardMount .sidebar-footer{display:none}}
 :root[data-theme=dark] #sellerLanding .site-eyebrow,:root[data-theme=dark] #sellerLanding h1 em,:root[data-theme=dark] #sellerLanding .mock-pill,:root[data-theme=dark] #sellerLanding .map-result>b,:root[data-theme=dark] #sellerLanding .feature-icon,:root[data-theme=dark] #sellerLanding .mock-nav .selected,:root[data-theme=dark] #sellerLanding .mock-nav>b{color:#8bb7ff}
+
+/* Transparent logo assets must not acquire a card background. */
+.site-header .site-brand img,.site-footer .site-brand img{display:block;background:transparent;border:0;padding:0;box-shadow:none;border-radius:0;object-fit:contain;flex-shrink:0}
