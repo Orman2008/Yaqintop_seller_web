@@ -41,7 +41,7 @@ export function createApiClient({
     sessionEpoch = 0;
   async function send(
     path,
-    { method = "GET", body, signal, auth = true } = {},
+    { method = "GET", body, signal, auth = true, headers: extraHeaders = {} } = {},
     retry = true,
   ) {
     if (!path.startsWith("/") || path.startsWith("//"))
@@ -55,7 +55,7 @@ export function createApiClient({
     try {
       const isForm =
         typeof FormData !== "undefined" && body instanceof FormData;
-      const headers = { "X-Device-Id": deviceId };
+      const headers = { "X-Device-Id": deviceId, ...extraHeaders };
       if (auth && access) headers.Authorization = `Bearer ${access}`;
       if (body !== undefined && !isForm)
         headers["Content-Type"] = "application/json";
@@ -106,7 +106,7 @@ export function createApiClient({
               refreshing = null;
             });
         await refreshing;
-        return send(path, { method, body, signal, auth }, false);
+        return send(path, { method, body, signal, auth, headers: extraHeaders }, false);
       }
       if (!response.ok)
         throw new ApiError(

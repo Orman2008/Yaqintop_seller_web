@@ -11,7 +11,7 @@ export const money = (value) =>
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const list = (values) => (Array.isArray(values) ? values : []);
 export const heading = (title, subtitle = "") =>
-  `<div class="page-head"><div><p class="eyebrow">MAPMARKET</p><h1>${esc(title)}</h1>${subtitle ? `<p class="muted">${esc(subtitle)}</p>` : ""}</div></div>`;
+  `<div class="page-head"><div><h1>${esc(title)}</h1>${subtitle ? `<p class="muted">${esc(subtitle)}</p>` : ""}</div></div>`;
 export const button = (label, action, extra = "") =>
   `<button type="button" class="button" data-action="${esc(action)}" ${extra}>${esc(label)}</button>`;
 export const empty = (message) =>

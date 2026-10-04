@@ -16,13 +16,14 @@ export const specializations = [
 export function authFlow({ api, client, baseUrl, onSession, locationPicker }) {
   let phone = "",
     signupToken = "",
+    staffClaimToken = "",
     channel = "telegram",
     codeLength = 6,
     disposePicker = () => {},
     staffTimer;
   const modal = dialog(
     "",
-    client === "seller" ? "Кабинет продавца" : "Вход в MapMarket",
+    client === "seller" ? "Кабинет продавца" : "Вход в YAQINTOP",
   );
   const body = $(".modal-body", modal);
   modal.addEventListener("close", () => {
@@ -131,6 +132,7 @@ export function authFlow({ api, client, baseUrl, onSession, locationPicker }) {
           },
         });
         if (payload.status === "pending_approval") {
+          staffClaimToken = payload.staff_claim_token || "";
           render(
             `<p class="notice">Заявка отправлена владельцу. Держите это окно открытым до одобрения.</p>${button("Проверить статус", "staff-status", `data-id="${esc(payload.request_id)}"`)}`,
           );
@@ -138,7 +140,7 @@ export function authFlow({ api, client, baseUrl, onSession, locationPicker }) {
             try {
               const result = await api.request(
                 `/staff-applications/${encodeURIComponent(payload.request_id)}/status`,
-                { auth: false },
+                { auth: false, headers: { "X-Staff-Claim-Token": staffClaimToken } },
               );
               if (!modal.open) return;
               if (result.token || result.access_token) accept(result);
@@ -178,7 +180,7 @@ export function authFlow({ api, client, baseUrl, onSession, locationPicker }) {
       if (action.dataset.action === "staff-status") {
         const payload = await api.request(
           `/staff-applications/${encodeURIComponent(action.dataset.id)}/status`,
-          { auth: false },
+          { auth: false, headers: { "X-Staff-Claim-Token": staffClaimToken } },
         );
         if (payload.access_token || payload.token) accept(payload);
         else

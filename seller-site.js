@@ -57,7 +57,7 @@
   window.addEventListener('seller-signed-out', () => {
     publicPage.hidden = false; dashboard.hidden = true;
     history.replaceState(null,'',location.pathname+location.search); window.scrollTo(0,0);
-    document.title = 'MapMarket для продавцов — привлекайте покупателей рядом';
+    document.title = 'YAQINTOP SELLER для продавцов — привлекайте покупателей рядом';
   });
   if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const observer = new IntersectionObserver(entries => {

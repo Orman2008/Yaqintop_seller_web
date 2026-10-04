@@ -55,7 +55,7 @@ const rootId=()=>Number(shop?.root_shop_id||shop?.business_id||shop?.id);
 const nav = [
   ["dashboard", "Обзор"],
   ["products", "Товары"],
-  ["catalog", "Каталог MapMarket"],
+  ["catalog", "Каталог YAQINTOP SELLER"],
   ["imports", "Импорт и API"],
   ["chats", "Чаты"],
   ["reviews", "Отзывы"],
@@ -70,7 +70,7 @@ const nav = [
   ["profile", "Аккаунт"],
 ];
 $("#app").outerHTML =
-  `<a class="skip-link" href="#view">К содержимому</a><div class="web-shell"><aside class="web-sidebar"><a class="web-brand" href="#dashboard"><img src="assets/mapmarket-logo.png" alt="MapMarket"><span>MapMarket<br><small class="muted">Seller</small></span></a><nav aria-label="Кабинет продавца">${nav.map(([key, title]) => `<a href="#${key}" data-nav="${key}">${title}</a>`).join("")}</nav><div class="sidebar-footer">${supportLinks(base, "seller")}</div></aside><main class="web-main"><header class="web-header"><span id="storeName">Кабинет продавца</span><div id="branchContext"></div><div class="actions">${button("Войти", "login")}${button("Выйти", "logout")}</div></header><section id="view" class="web-content" aria-live="polite"></section></main></div>`;
+  `<a class="skip-link" href="#view">К содержимому</a><div class="web-shell"><aside class="web-sidebar"><a class="web-brand" href="#dashboard"><img src="assets/yaqintop-logo.png" alt="YAQINTOP SELLER"><span>YAQINTOP SELLER<br><small class="muted">Seller</small></span></a><nav aria-label="Кабинет продавца">${nav.map(([key, title]) => `<a href="#${key}" data-nav="${key}">${title}</a>`).join("")}</nav><div class="sidebar-footer">${supportLinks(base, "seller")}</div></aside><main class="web-main"><header class="web-header"><span id="storeName">Кабинет продавца</span><div id="branchContext"></div><div class="actions">${button("Войти", "login")}${button("Выйти", "logout")}</div></header><section id="view" class="web-content" aria-live="polite"></section></main></div>`;
 const image = (url, title = "Фото товара") => {
   const src = mediaUrl(url, base, true);
   return src
@@ -208,7 +208,7 @@ async function editor(product = {}) {
       .map((url) => image(url))
       .join(
         "",
-      )}</div><p class="muted">Фотография загружается в существующее хранилище MapMarket. Удаление фона доступно в Seller App; браузер не запускает мобильный ML-процесс.</p><div class="actions"><button type="button" class="button soft" data-editor-ai="photo">AI: заполнить по фото</button><button type="button" class="button soft" data-editor-ai="description">AI: описание</button></div><p class="muted">Перед AI-запросом покажем стоимость из действующего тарифа. Поля можно проверить до сохранения.</p><button class="button">Сохранить товар</button></form>`,
+      )}</div><p class="muted">Фотография загружается в существующее хранилище YAQINTOP SELLER. Удаление фона доступно в Seller App; браузер не запускает мобильный ML-процесс.</p><div class="actions"><button type="button" class="button soft" data-editor-ai="photo">AI: заполнить по фото</button><button type="button" class="button soft" data-editor-ai="description">AI: описание</button></div><p class="muted">Перед AI-запросом покажем стоимость из действующего тарифа. Поля можно проверить до сохранения.</p><button class="button">Сохранить товар</button></form>`,
     product.id ? "Изменить товар" : "Добавить товар",
   );
   const form = $("form", modal),
@@ -319,12 +319,12 @@ async function editor(product = {}) {
       route = "products";
       location.hash = "products";
       await go();
-      toast("Товар сохранён в MapMarket");
+      toast("Товар сохранён в YAQINTOP SELLER");
     });
   };
 }
 async function catalog() {
-  return `${heading("Каталог MapMarket", "Общий каталог для всех магазинов")}<form id="lookup" class="toolbar">${field("Штрихкод или название", "q", filter, "text", "required")}<button class="button">Найти</button>${button("Считать камерой", "barcode")}</form><div id="catalogResults">${empty("Введите штрихкод или название")}</div>`;
+  return `${heading("Каталог YAQINTOP SELLER", "Общий каталог для всех магазинов")}<form id="lookup" class="toolbar">${field("Штрихкод или название", "q", filter, "text", "required")}<button class="button">Найти</button>${button("Считать камерой", "barcode")}</form><div id="catalogResults">${empty("Введите штрихкод или название")}</div>`;
 }
 async function lookup(value) {
   filter = value;
@@ -388,7 +388,7 @@ async function imports() {
       .filter(
         (p) =>
           p.is_enabled &&
-          p.availability === "available" &&
+          (p.availability === "available" || p.setup_supported) &&
           p.connection_type !== "file_import",
       )
       .map((p) => [p.code, p.name]),
@@ -412,7 +412,7 @@ async function previewImport(values) {
       )
       .join(
         "",
-      )}</tbody></table></div><form id="importMapping" class="form">${["name", "price", "barcode", "stock_quantity", "image_url", "description"].map((key) => select(key, key, [["", "Не использовать"], ...importBatch.headers], importBatch.suggested_mapping?.[key])).join("")}<button class="button">Проверить сопоставление</button></form><div id="importValidation"></div>`;
+      )}</tbody></table></div><form id="importMapping" class="form">${["name", "price", "barcode", "sku", "stock", "discount_price", "category", "brand", "image_url", "description"].map((key) => select(key, key, [["", "Не использовать"], ...importBatch.headers], importBatch.suggested_mapping?.[key])).join("")}<button class="button">Проверить сопоставление</button></form><div id="importValidation"></div>`;
   bindForm("#importMapping", async (mapping) => {
     const result = await api.request(
       `/api/stores/${shop.id}/integration-imports/${importBatch.import_id}/mapping`,
@@ -423,8 +423,9 @@ async function previewImport(values) {
         found: result.found,
         valid: result.valid,
         errors: result.errors_count,
+        new_products:result.new_products,existing_products:result.existing_products,updates:result.updates,skipped:result.skipped,
       }) +
-      `<p>${esc(rows(result, "first_errors").join("; "))}</p>${result.valid ? button("Подтвердить импорт", "confirm-import") : ""}`;
+      `<p>${esc(rows(result, "first_errors").join("; "))}</p>${result.valid && !result.errors_count && !result.skipped ? button("Подтвердить импорт", "confirm-import") : ""}`;
   });
 }
 async function storePage() {
@@ -488,7 +489,7 @@ async function go(next = route) {
   const disposePrevious = cleanup;
   cleanup = () => {};
   disposePrevious();
-  document.title = `${nav.find((n) => n[0] === route)?.[1] || "Кабинет"} · MapMarket Seller`;
+  document.title = `${nav.find((n) => n[0] === route)?.[1] || "Кабинет"} · YAQINTOP SELLER`;
   for (const link of document.querySelectorAll("[data-nav]"))
     link.classList.toggle("active", link.dataset.nav === route);
   $("#view").innerHTML = loading();
@@ -496,7 +497,7 @@ async function go(next = route) {
   $("[data-action=logout]").hidden = !api.authenticated;
   if (!api.authenticated) {
     $("#view").innerHTML =
-      `${heading("Управляйте магазином в MapMarket", "Тот же аккаунт и каталог, что в Seller App")}<div class="card"><h2>Вход по номеру телефона</h2><p>Код в Telegram или SMS. Владелец создаёт магазин, сотрудник присоединяется по коду магазина.</p>${button("Войти / зарегистрироваться", "login")}</div>`;
+      `${heading("Управляйте магазином в YAQINTOP SELLER", "Тот же аккаунт и каталог, что в Seller App")}<div class="card"><h2>Вход по номеру телефона</h2><p>Код в Telegram или SMS. Владелец создаёт магазин, сотрудник присоединяется по коду магазина.</p>${button("Войти / зарегистрироваться", "login")}</div>`;
     return;
   }
   if (!shop) {
@@ -731,12 +732,18 @@ async function go(next = route) {
         const credentials = JSON.parse(values.credentials || "{}");
         for (const [key, value] of Object.entries(values))
           if (key.startsWith("credential_")) credentials[key.slice(11)] = value;
+        const configuration=JSON.parse(values.configuration || '{}');
+        const provider=integrationProviders.find(p=>p.code===values.provider);
+        for(const descriptor of rows(provider?.configuration_schema,'configuration_fields')){
+          const value=values['config_'+descriptor.key];
+          if(value)configuration[descriptor.key]=descriptor.type==='json'?JSON.parse(value):descriptor.type==='boolean'?value==='true':value;
+        }
         await api.request(`/api/stores/${shop.id}/integrations`, {
           method: "POST",
           body: {
             provider: values.provider,
             credentials,
-            configuration: JSON.parse(values.configuration),
+            configuration,
           },
         });
         await go();
@@ -762,7 +769,7 @@ async function go(next = route) {
         const provider = integrationProviders.find(
           (p) => p.code === providerSelect.value,
         );
-        holder.innerHTML = `<p class="muted">${esc(provider?.instructions || "")}</p>${rows(
+        holder.innerHTML = `<p class="muted">${esc(provider?.ui_metadata?.instructions || provider?.instructions || "")}</p>${rows(
           provider?.configuration_schema,
           "fields",
         )
@@ -775,7 +782,7 @@ async function go(next = route) {
               `${descriptor.required ? "required" : ""} autocomplete="off"`,
             ),
           )
-          .join("")}`;
+          .join("")}${rows(provider?.configuration_schema,'configuration_fields').map(descriptor=>descriptor.type==='json'?textarea(descriptor.label,'config_'+descriptor.key,''):field(descriptor.label,'config_'+descriptor.key,'','text',`${descriptor.required?'required':''} autocomplete="off"`)).join('')}`;
       };
       providerSelect.onchange = renderProvider;
       renderProvider();
