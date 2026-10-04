@@ -174,7 +174,7 @@ function productTable() {
     [
       "Действия",
       (p) =>
-        `<div class="actions">${button("Изменить", "edit-product", `data-id="${Number(p.id)}"`)}${button("Наличие", "stock", `data-id="${Number(p.id)}"`)}${button("Удалить", "delete-product", `data-id="${Number(p.id)}"`)}</div>`,
+        `<div class="actions">${shop.position==='owner'||shop.permissions?.products?button("Изменить", "edit-product", `data-id="${Number(p.id)}"`)+button("Наличие", "stock", `data-id="${Number(p.id)}"`):""}${shop.position==='owner'?button("Удалить", "delete-product", `data-id="${Number(p.id)}"`):""}</div>`,
     ],
   ], true);
 }
@@ -188,9 +188,15 @@ async function loadProducts() {
   );
   if (version !== generation) throw new Error("Запрос устарел");
   items = fetched;
-  return `${heading("Каталог товаров", shop.name)}<div class="toolbar">${button("Добавить вручную", "new-product")}<a class="button soft" href="#catalog">Из Global Catalog</a><a class="button soft" href="#imports">Импорт</a></div><form id="productSearch" class="toolbar">${field("Поиск", "q", filter)}${select("Категория", "category",[["","Все категории"],...Object.keys(tree)],productCategory)}${select("Сортировка","sort",[["new","Сначала новые"],["price_asc","Сначала дешевле"],["price_desc","Сначала дороже"],["rating","По рейтингу"]],productSort)}<button class="button">Применить</button></form>${productTable()}<div class="actions">${page ? button("Назад", "previous") : ""}${items.length === 24 ? button("Далее", "next") : ""}</div>`;
+  return `${heading("Каталог товаров", shop.name)}<div class="toolbar">${shop.position==='owner'?button("Добавить вручную", "new-product"):""}${shop.position==='owner'||shop.permissions?.products?'<a class="button soft" href="#catalog">Из Global Catalog</a>':""}${shop.position==='owner'?'<a class="button soft" href="#imports">Импорт</a>':""}</div><form id="productSearch" class="toolbar">${field("Поиск", "q", filter)}${select("Категория", "category",[["","Все категории"],...Object.keys(tree)],productCategory)}${select("Сортировка","sort",[["new","Сначала новые"],["price_asc","Сначала дешевле"],["price_desc","Сначала дороже"],["rating","По рейтингу"]],productSort)}<button class="button">Применить</button></form>${productTable()}<div class="actions">${page ? button("Назад", "previous") : ""}${items.length === 24 ? button("Далее", "next") : ""}</div>`;
 }
 async function editor(product = {}) {
+  if (shop.position !== 'owner') {
+    if (!product.id || shop.permissions?.products === false) return;
+    const modal=dialog(`<form class="form">${field('Цена','price',product.price,'number','min="0" step="any" required')}${field('Скидка, %','discount_percent',product.discount_percent||0,'number','min="0" max="99.99" step="any"')}${field('Остаток','stock_quantity',product.stock_quantity??0,'number','min="0"')}${select('Наличие','stock_status',['AVAILABLE','OUT_OF_STOCK','UNCONFIRMED'],product.stock_status||'AVAILABLE')}<button class="button">Сохранить предложение филиала</button></form>`,product.title);
+    const form=modal.querySelector('form');form.onsubmit=event=>{event.preventDefault();submit(form,async values=>{await api.request(`/products/${Number(product.id)}`,{method:'PUT',body:values});modal.close();await go();});};
+    return;
+  }
   if(allBranches&&!product.id){toast("Выберите филиал для добавления товара");return;}
   if (!Object.keys(tree).length)
     tree = await api.request("/products/category-tree");
@@ -423,14 +429,20 @@ async function previewImport(values) {
 }
 async function storePage() {
   if(allBranches)throw new Error("Выберите филиал для настройки магазина");
-  return `${heading("Мой магазин", shop.name)}<div class="card"><form id="storeForm" class="form">${field("Название", "name", shop.name, "text", "required")}${field("Адрес", "address", shop.address, "text", "required")}${field("Телефон", "phone", shop.phone || "", "tel")}${field("Telegram", "telegram", shop.telegram || "")}${field("Часы работы", "working_hours", shop.working_hours || "")}${textarea("Описание", "description", shop.description)}${select("Сфера", "specialization_code", specializations, shop.specialization_code)}<div id="storePicker" class="web-map picker-map"></div><div class="form-row">${field("Широта", "latitude", shop.latitude, "number", 'required step="any" min="-90" max="90"')}${field("Долгота", "longitude", shop.longitude, "number", 'required step="any" min="-180" max="180"')}</div>${field("Логотип", "logo", "", "file", 'accept="image/jpeg,image/png,image/webp"')}<button class="button">Сохранить магазин</button></form></div>`;
+  return `${heading("Мой магазин", shop.name)}<div class="card"><form id="storeForm" class="form">${field("Название", "name", shop.name, "text", shop.position==='owner'||shop.root_shop_id?"required":"readonly")}${field("Адрес", "address", shop.address, "text", "required")}${field("Телефон", "phone", shop.phone || "", "tel")}${field("Telegram", "telegram", shop.telegram || "")}${field("Часы работы", "working_hours", shop.working_hours || "")}${shop.position==='owner'?textarea("Описание", "description", shop.description)+select("Сфера", "specialization_code", specializations, shop.specialization_code):""}<div id="storePicker" class="web-map picker-map"></div><div class="form-row">${field("Широта", "latitude", shop.latitude, "number", 'required step="any" min="-90" max="90"')}${field("Долгота", "longitude", shop.longitude, "number", 'required step="any" min="-180" max="180"')}</div>${shop.position==='owner'?field("Логотип", "logo", "", "file", 'accept="image/jpeg,image/png,image/webp"'):""}<button class="button">Сохранить магазин</button></form></div>`;
 }
 async function team() {
   const [members, applications] = await Promise.all([
     api.request(endpoint("/team")),
     api.request(endpoint("/staff-applications")),
   ]);
-  return `${heading("Команда", "Права проверяются сервером; управление доступно владельцу")}<p class="notice">Код магазина: ${esc(shop.store_code || "Откройте профиль магазина в приложении")}</p>${table(
+  let permissionForm='';
+  if(shop.position==='owner'){
+    const setting=await api.request(endpoint('/staff-permissions'));
+    const labels={products_view:'Просмотр товаров',products:'Изменение предложений',profile:'Профиль филиала',staff:'Управление командой',chats:'Чаты',analytics:'Аналитика',reviews:'Отзывы',qr:'QR',broadcasts:'Рассылки',sales:'Продажи',ai:'AI'};
+    permissionForm='<section class="card"><h2>Права этого филиала</h2><form id="branchPermissions" class="form">'+['seller','manager'].map(role=>'<fieldset><legend>'+esc(role==='manager'?'Менеджер':'Сотрудник')+'</legend>'+Object.entries(labels).map(([key,label])=>'<label><input type="checkbox" data-permission-role="'+role+'" data-permission="'+key+'" '+(setting.permissions?.[role]?.[key]?'checked':'')+'>'+esc(label)+'</label>').join('')+'</fieldset>').join('')+'<button class="button">Сохранить права</button></form></section>';
+  }
+  return `${permissionForm}${heading("Команда", "Права проверяются сервером для выбранного филиала")}<p class="notice">Код магазина: ${esc(shop.store_code || "Откройте профиль магазина в приложении")}</p>${table(
     rows(members, "members"),
     [
       ["Сотрудник", (m) => esc(m.name || m.user_name)],
@@ -493,10 +505,18 @@ async function go(next = route) {
   }
   $("#storeName").textContent=shop.business_name||shop.name;
   const owner=shop.position==='owner';
+  const routePermission={imports:'owner',pos:'owner',branches:'owner',catalog:'products',products:'products_view',chats:'chats',analytics:'analytics',store:'profile',team:'staff',ai:'ai',qr:'qr'};
+  document.querySelectorAll('[data-nav]').forEach(link=>{
+    const permission=routePermission[link.dataset.nav];
+    link.hidden=!owner&&shop.permissions&&permission&&shop.permissions[permission]!==true;
+    link.style.display=link.hidden?'none':'';
+  });
   const network=shops.filter(s=>Number(s.root_shop_id||s.business_id||s.id)===rootId());
   $("#branchContext").innerHTML=owner?select("Филиал","active_branch",[["all","Все филиалы"],...network.filter(s=>!s.subscription_locked&&s.branch_status!=='archived').map(s=>[s.id,(s.root_shop_id?s.branch_display_name||s.name:'Основной')+' — '+(s.store_code||'')+' · '+(s.address||'')])],allBranches?'all':shop.id):'<span>Филиал: '+esc(shop.name)+' · '+esc(shop.store_code)+'</span>';
   $("[name=active_branch]")?.addEventListener("change",async e=>{allBranches=e.target.value==='all';if(!allBranches)shop=shops.find(s=>Number(s.id)===Number(e.target.value));else shop=shops.find(s=>Number(s.id)===rootId())||shop;page=0;await go();});
   try {
+    const permission=routePermission[route];
+    if(!owner&&shop.permissions&&permission&&shop.permissions[permission]!==true)throw new Error('Владелец не разрешил этот раздел для вашего филиала.');
     let html = "";
     if(route==='branches'){
       if(!owner)throw new Error('Управление филиалами доступно владельцу бизнеса.');
@@ -608,7 +628,7 @@ async function go(next = route) {
       const data = await api.request(endpoint("/plan"));
       html =
         heading(
-          "Тариф и лимиты",
+          "Тариф бизнеса и общий AI-кошелёк",
           "Тарифы и ограничения из действующего backend",
         ) +
         infoCards({
@@ -783,11 +803,18 @@ async function go(next = route) {
         "</div>";
       $("#view").append(status);
     }
+    bindForm('#branchPermissions',async()=>{
+      const permissions={seller:{},manager:{}};
+      document.querySelectorAll('[data-permission-role]').forEach(input=>{permissions[input.dataset.permissionRole][input.dataset.permission]=input.checked;});
+      await api.request(endpoint('/staff-permissions'),{method:'PUT',body:{permissions}});
+      await go();
+    });
     bindForm("#storeForm", async (values) => {
       const data = new FormData();
+      if(!owner){const allowed=['address','phone','latitude','longitude','working_hours','telegram',...(Number(shop.root_shop_id)?['name']:[])];for(const key of Object.keys(values))if(!allowed.includes(key))delete values[key];}
       for (const [key, value] of Object.entries(values))
         if (key !== "logo") data.append(key, value);
-      data.append("specialization", shop.specialization || "");
+      if(owner)data.append("specialization", shop.specialization || "");
       if (values.logo?.size) data.append("logo", values.logo);
       const result = await api.request(endpoint(""), {
         method: "PUT",
