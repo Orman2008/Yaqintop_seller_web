@@ -140,6 +140,7 @@ export function createApiClient({
     sessionEpoch++;
     access = "";
     refresh = "";
+    clearPrivateMediaImages();
   }
   return {
     request: send,
@@ -168,7 +169,7 @@ export function mediaUrl(raw, baseUrl, thumbnail = false) {
     let url = new URL(value, `${baseUrl}/`);
     if (url.username || url.password) return "";
     if (/^\/media\/\d+(\/thumbnail)?$/.test(url.pathname))
-      url = new URL(url.pathname, baseUrl);
+      url = new URL(url.pathname + url.search, baseUrl);
     if (
       !["https:", "http:"].includes(url.protocol) ||
       (url.protocol !== "https:" &&
@@ -194,3 +195,44 @@ export const rows = (payload, key = "items") =>
     : Array.isArray(payload?.[key])
       ? payload[key]
       : [];
+
+export function withoutMediaCapabilities(value) {
+  if (typeof value === "string" && value.includes("media_token=")) {
+    try {
+      const url = new URL(value, "https://media.invalid");
+      url.searchParams.delete("media_token"); url.searchParams.set("private_media", "1");
+      return value.startsWith("/") ? url.pathname + url.search : url.href;
+    } catch { return ""; }
+  }
+  if(Array.isArray(value)) return value.map(withoutMediaCapabilities);
+  if(value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key,item]) => [key,withoutMediaCapabilities(item)]));
+  return value;
+}
+export function clearPrivateMediaImages(root = globalThis.document) {
+  root?.querySelectorAll('img[src*="media_token="],img[src*="private_media=1"]').forEach(image => image.removeAttribute("src"));
+}
+export function installPrivateMediaImages({request, baseUrl, root = globalThis.document}) {
+  const attempts = new WeakMap();
+  const loaded = event => { if(event.target?.tagName === 'IMG') attempts.delete(event.target); };
+  const listener = async event => {
+    const image = event.target;
+    if(image?.tagName !== "IMG") return;
+    let url;
+    try { url = new URL(image.src); } catch { return; }
+    if(url.origin !== new URL(baseUrl).origin || !/^\/media\/\d+(?:\/thumbnail)?$/.test(url.pathname)) return;
+    const original = image.src;
+    if(attempts.get(image) === original) return;
+    attempts.set(image,original);
+    image.referrerPolicy = "no-referrer";
+    try {
+      const payload = await request(url.pathname.replace(/\/thumbnail$/, "") + "/access");
+      if(!image.isConnected || image.src !== original) return;
+      const renewed = mediaUrl(payload.url,baseUrl,url.pathname.endsWith('/thumbnail'));
+      if(!renewed) return;
+      attempts.set(image,renewed); image.src = renewed;
+    } catch { /* Existing error presentation remains; no credentials or URL are logged. */ }
+  };
+  root?.addEventListener("error",listener,true);
+  root?.addEventListener("load",loaded,true);
+  return () => { root?.removeEventListener("error",listener,true); root?.removeEventListener("load",loaded,true); };
+}

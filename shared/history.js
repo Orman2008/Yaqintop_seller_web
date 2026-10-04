@@ -1,4 +1,5 @@
 // Non-sensitive public browsing history only. Never store identity/session tokens here.
+import { withoutMediaCapabilities } from './api.js';
 export function readHistory(storage, key, limit = 20) {
   try {
     const raw = storage.getItem(key) || "[]";
@@ -11,7 +12,7 @@ export function readHistory(storage, key, limit = 20) {
 }
 export function writeHistory(storage, key, entries) {
   try {
-    storage.setItem(key, JSON.stringify(entries.slice(0, 20)));
+    storage.setItem(key, JSON.stringify(withoutMediaCapabilities(entries.slice(0, 20))));
   } catch {
     /* A full or disabled browser store must not break catalog navigation. */
   }

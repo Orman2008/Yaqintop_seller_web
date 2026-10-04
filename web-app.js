@@ -7,6 +7,7 @@ import {
   mediaUrl,
   query,
   rows,
+  installPrivateMediaImages,
 } from "./shared/api.js";
 import {
   $,
@@ -37,6 +38,7 @@ const api = createApiClient({
   deviceId: `seller-web:${crypto.randomUUID()}`,
   timeout: 30000,
 });
+installPrivateMediaImages({request: api.request, baseUrl: base});
 let user = null,
   shop = null,
   shops = [],
