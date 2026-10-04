@@ -1,6 +1,6 @@
 {
-  "name": "YAQINTOP SELLER",
-  "short_name": "YAQINTOP SELLER",
+  "name": "Yaqintop seller",
+  "short_name": "Yaqintop seller",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

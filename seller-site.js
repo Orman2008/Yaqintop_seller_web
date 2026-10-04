@@ -4,7 +4,7 @@
   const status = document.getElementById('sellerSiteStatus');
   const config = String(window.MAPMARKET_CONFIG?.PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
   for (const link of document.querySelectorAll('[data-legal]')) {
-    link.href = link.dataset.legal === 'support' ? 'https://t.me/mapmarket_support_bot' : `${config}/legal/seller/${link.dataset.legal}`;
+    link.href = link.dataset.legal === 'support' ? 'https://t.me/yaqintop_support_bot' : `${config}/legal/seller/${link.dataset.legal}`;
   }
   const menu = document.querySelector('.menu-toggle');
   menu.addEventListener('click', () => {
@@ -57,7 +57,7 @@
   window.addEventListener('seller-signed-out', () => {
     publicPage.hidden = false; dashboard.hidden = true;
     history.replaceState(null,'',location.pathname+location.search); window.scrollTo(0,0);
-    document.title = 'YAQINTOP SELLER для продавцов — привлекайте покупателей рядом';
+    document.title = 'Yaqintop seller для продавцов — привлекайте покупателей рядом';
   });
   if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const observer = new IntersectionObserver(entries => {

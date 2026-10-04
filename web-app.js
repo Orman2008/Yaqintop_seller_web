@@ -57,7 +57,7 @@ const rootId=()=>Number(shop?.root_shop_id||shop?.business_id||shop?.id);
 const nav = [
   ["dashboard", "Обзор"],
   ["products", "Товары"],
-  ["catalog", "Каталог YAQINTOP SELLER"],
+  ["catalog", "Каталог Yaqintop seller"],
   ["imports", "Импорт и API"],
   ["chats", "Чаты"],
   ["reviews", "Отзывы"],
@@ -72,7 +72,7 @@ const nav = [
   ["profile", "Аккаунт"],
 ];
 $("#app").outerHTML =
-  `<a class="skip-link" href="#view">К содержимому</a><div class="web-shell"><aside class="web-sidebar"><a class="web-brand" href="#dashboard"><img src="assets/yaqintop-logo.png" alt="YAQINTOP SELLER"><span>YAQINTOP SELLER<br><small class="muted">Seller</small></span></a><nav aria-label="Кабинет продавца">${nav.map(([key, title]) => `<a href="#${key}" data-nav="${key}">${title}</a>`).join("")}</nav><div class="sidebar-footer">${supportLinks(base, "seller")}</div></aside><main class="web-main"><header class="web-header"><span id="storeName">Кабинет продавца</span><div id="branchContext"></div><div class="actions">${button("Войти", "login")}${button("Выйти", "logout")}</div></header><section id="view" class="web-content" aria-live="polite"></section></main></div>`;
+  `<a class="skip-link" href="#view">К содержимому</a><div class="web-shell"><aside class="web-sidebar"><a class="web-brand" href="#dashboard"><img src="assets/yaqintop-logo.png" alt="Yaqintop seller"><span>Yaqintop seller<br><small class="muted">Seller</small></span></a><nav aria-label="Кабинет продавца">${nav.map(([key, title]) => `<a href="#${key}" data-nav="${key}">${title}</a>`).join("")}</nav><div class="sidebar-footer">${supportLinks(base, "seller")}</div></aside><main class="web-main"><header class="web-header"><span id="storeName">Кабинет продавца</span><div id="branchContext"></div><div class="actions">${button("Войти", "login")}${button("Выйти", "logout")}</div></header><section id="view" class="web-content" aria-live="polite"></section></main></div>`;
 const image = (url, title = "Фото товара") => {
   const src = mediaUrl(url, base, true);
   return src
@@ -210,7 +210,7 @@ async function editor(product = {}) {
       .map((url) => image(url))
       .join(
         "",
-      )}</div><p class="muted">Фотография загружается в существующее хранилище YAQINTOP SELLER. Удаление фона доступно в Seller App; браузер не запускает мобильный ML-процесс.</p><div class="actions"><button type="button" class="button soft" data-editor-ai="photo">AI: заполнить по фото</button><button type="button" class="button soft" data-editor-ai="description">AI: описание</button></div><p class="muted">Перед AI-запросом покажем стоимость из действующего тарифа. Поля можно проверить до сохранения.</p><button class="button">Сохранить товар</button></form>`,
+      )}</div><p class="muted">Фотография загружается в существующее хранилище Yaqintop seller. Удаление фона доступно в Seller App; браузер не запускает мобильный ML-процесс.</p><div class="actions"><button type="button" class="button soft" data-editor-ai="photo">AI: заполнить по фото</button><button type="button" class="button soft" data-editor-ai="description">AI: описание</button></div><p class="muted">Перед AI-запросом покажем стоимость из действующего тарифа. Поля можно проверить до сохранения.</p><button class="button">Сохранить товар</button></form>`,
     product.id ? "Изменить товар" : "Добавить товар",
   );
   const form = $("form", modal),
@@ -321,12 +321,12 @@ async function editor(product = {}) {
       route = "products";
       location.hash = "products";
       await go();
-      toast("Товар сохранён в YAQINTOP SELLER");
+      toast("Товар сохранён в Yaqintop seller");
     });
   };
 }
 async function catalog() {
-  return `${heading("Каталог YAQINTOP SELLER", "Общий каталог для всех магазинов")}<form id="lookup" class="toolbar">${field("Штрихкод или название", "q", filter, "text", "required")}<button class="button">Найти</button>${button("Считать камерой", "barcode")}</form><div id="catalogResults">${empty("Введите штрихкод или название")}</div>`;
+  return `${heading("Каталог Yaqintop seller", "Общий каталог для всех магазинов")}<form id="lookup" class="toolbar">${field("Штрихкод или название", "q", filter, "text", "required")}<button class="button">Найти</button>${button("Считать камерой", "barcode")}</form><div id="catalogResults">${empty("Введите штрихкод или название")}</div>`;
 }
 async function lookup(value) {
   filter = value;
@@ -491,7 +491,7 @@ async function go(next = route) {
   const disposePrevious = cleanup;
   cleanup = () => {};
   disposePrevious();
-  document.title = `${nav.find((n) => n[0] === route)?.[1] || "Кабинет"} · YAQINTOP SELLER`;
+  document.title = `${nav.find((n) => n[0] === route)?.[1] || "Кабинет"} · Yaqintop seller`;
   for (const link of document.querySelectorAll("[data-nav]"))
     link.classList.toggle("active", link.dataset.nav === route);
   $("#view").innerHTML = loading();
@@ -499,7 +499,7 @@ async function go(next = route) {
   $("[data-action=logout]").hidden = !api.authenticated;
   if (!api.authenticated) {
     $("#view").innerHTML =
-      `${heading("Управляйте магазином в YAQINTOP SELLER", "Тот же аккаунт и каталог, что в Seller App")}<div class="card"><h2>Вход по номеру телефона</h2><p>Код в Telegram или SMS. Владелец создаёт магазин, сотрудник присоединяется по коду магазина.</p>${button("Войти / зарегистрироваться", "login")}</div>`;
+      `${heading("Управляйте магазином в Yaqintop seller", "Тот же аккаунт и каталог, что в Seller App")}<div class="card"><h2>Вход по номеру телефона</h2><p>Код в Telegram или SMS. Владелец создаёт магазин, сотрудник присоединяется по коду магазина.</p>${button("Войти / зарегистрироваться", "login")}</div>`;
     return;
   }
   if (!shop) {

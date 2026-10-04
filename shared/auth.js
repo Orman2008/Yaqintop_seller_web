@@ -23,7 +23,7 @@ export function authFlow({ api, client, baseUrl, onSession, locationPicker }) {
     staffTimer;
   const modal = dialog(
     "",
-    client === "seller" ? "Кабинет продавца" : "Вход в YAQINTOP",
+    client === "seller" ? "Кабинет продавца" : "Вход в Yaqintop",
   );
   const body = $(".modal-body", modal);
   modal.addEventListener("close", () => {

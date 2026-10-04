@@ -38,7 +38,7 @@ export function editAccount(api, user, onUpdate) {
 }
 export async function deleteAccount(api, onDeleted) {
   const modal = dialog(
-    `<p class="notice">Удаление аккаунта необратимо. Связанные данные будут удалены по правилам YAQINTOP. Сначала запросите код подтверждения.</p>${button("Получить код удаления", "request-deletion")}`,
+    `<p class="notice">Удаление аккаунта необратимо. Связанные данные будут удалены по правилам Yaqintop. Сначала запросите код подтверждения.</p>${button("Получить код удаления", "request-deletion")}`,
     "Удалить аккаунт",
   );
   $("[data-action]", modal).onclick = async (event) => {
@@ -69,5 +69,5 @@ export async function deleteAccount(api, onDeleted) {
   };
 }
 export function supportLinks(base, client) {
-  return `<div class="actions"><a href="${base}/legal/${client}/terms" target="_blank" rel="noopener">Условия</a><a href="${base}/legal/${client}/privacy" target="_blank" rel="noopener">Конфиденциальность</a><a href="https://t.me/mapmarket_support_bot" target="_blank" rel="noopener">Поддержка</a></div>`;
+  return `<div class="actions"><a href="${base}/legal/${client}/terms" target="_blank" rel="noopener">Условия</a><a href="${base}/legal/${client}/privacy" target="_blank" rel="noopener">Конфиденциальность</a><a href="https://t.me/yaqintop_support_bot" target="_blank" rel="noopener">Поддержка</a></div>`;
 }
