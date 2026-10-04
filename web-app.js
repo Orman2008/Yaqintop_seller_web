@@ -72,7 +72,7 @@ const nav = [
   ["profile", "Аккаунт"],
 ];
 $("#app").outerHTML =
-  `<a class="skip-link" href="#view">К содержимому</a><div class="web-shell"><aside class="web-sidebar"><a class="web-brand" href="#dashboard"><img src="assets/yaqintop-logo.png" alt="Yaqintop seller"><span>Yaqintop seller<br><small class="muted">Seller</small></span></a><nav aria-label="Кабинет продавца">${nav.map(([key, title]) => `<a href="#${key}" data-nav="${key}">${title}</a>`).join("")}</nav><div class="sidebar-footer">${supportLinks(base, "seller")}</div></aside><main class="web-main"><header class="web-header"><span id="storeName">Кабинет продавца</span><div id="branchContext"></div><div class="actions">${button("Войти", "login")}${button("Выйти", "logout")}</div></header><section id="view" class="web-content" aria-live="polite"></section></main></div>`;
+  `<a class="skip-link" href="#view">К содержимому</a><div class="web-shell"><aside class="web-sidebar"><a class="web-brand" href="#dashboard"><img src="assets/yaqintop-seller-transparent.png" alt="Yaqintop seller"><span>Yaqintop seller<br><small class="muted">Seller</small></span></a><nav aria-label="Кабинет продавца">${nav.map(([key, title]) => `<a href="#${key}" data-nav="${key}">${title}</a>`).join("")}</nav><div class="sidebar-footer">${supportLinks(base, "seller")}</div></aside><main class="web-main"><header class="web-header"><span id="storeName">Кабинет продавца</span><div id="branchContext"></div><div class="actions">${button("Войти", "login")}${button("Выйти", "logout")}</div></header><section id="view" class="web-content" aria-live="polite"></section></main></div>`;
 const image = (url, title = "Фото товара") => {
   const src = mediaUrl(url, base, true);
   return src
