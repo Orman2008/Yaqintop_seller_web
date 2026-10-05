@@ -1,4 +1,5 @@
 import {branchesPage,bindBranches,mapPosLocations} from './seller-branches.js';
+import {ensureLegalAcceptance,sellerComplianceView,bindSellerCompliance,rankingHelp} from './shared/compliance.js';
 import { appearanceSettings } from "./shared/appearance.js";
 import { mountNavigationMotion } from "./shared/motion.js";
 import {
@@ -70,6 +71,8 @@ const nav = [
   ["team", "Команда"],
   ["branches", "Филиалы"],
   ["profile", "Аккаунт"],
+  ["compliance", "Проверка продавца"],
+  ["ranking", "Как формируется выдача"],
 ];
 $("#app").outerHTML =
   `<a class="skip-link" href="#view">К содержимому</a><div class="web-shell"><aside class="web-sidebar"><a class="web-brand" href="#dashboard"><img src="assets/yaqintop-seller-transparent.png" alt="Yaqintop seller"><span>Yaqintop seller<br><small class="muted">Seller</small></span></a><nav aria-label="Кабинет продавца">${nav.map(([key, title]) => `<a href="#${key}" data-nav="${key}">${title}</a>`).join("")}</nav><div class="sidebar-footer">${supportLinks(base, "seller")}</div></aside><main class="web-main"><header class="web-header"><span id="storeName">Кабинет продавца</span><div id="branchContext"></div><div class="actions">${button("Войти", "login")}${button("Выйти", "logout")}</div></header><section id="view" class="web-content" aria-live="polite"></section></main></div>`;
@@ -101,7 +104,7 @@ function login() {
         shops = rows(await api.request("/users/me/shops"));
         shop = shops.find((s) => Number(s.id) === Number(shop?.id)) || shop;
         await go("dashboard");
-        window.dispatchEvent(new window.Event("seller-authenticated"));
+      window.dispatchEvent(new window.Event("seller-authenticated"));
       } catch (error) {
         $("#view").innerHTML = errorView(error);
         window.dispatchEvent(new window.Event("seller-authenticated"));
@@ -203,7 +206,7 @@ async function editor(product = {}) {
   if (!Object.keys(tree).length)
     tree = await api.request("/products/category-tree");
   const modal = dialog(
-    `<form class="form">${field("Название", "title", product.title || "", "text", 'required maxlength="220"')}${textarea("Описание", "description", product.description)}<div class="form-row">${field("Цена, сум", "price", product.price ?? "", "number", 'required min="0.01" step="0.01"')}${field("Старая цена", "old_price", product.old_price || "", "number", 'min="0" step="0.01"')}${field("Скидка, %", "discount_percent", product.discount_percent || 0, "number", 'min="0" max="99" step="0.01"')}</div><div class="form-row">${field("Количество", "stock_quantity", product.stock_quantity ?? "", "number", 'min="0" step="1"')}${select("Наличие", "stock_status", ["AVAILABLE", "OUT_OF_STOCK", "UNCONFIRMED"], product.stock_status || "AVAILABLE")}</div><div class="form-row">${field("Штрихкод / GTIN", "barcode", product.barcode || product.gtin || "", "text", 'inputmode="numeric"')}${field("Артикул", "sku", product.sku || "")}</div><div class="form-row">${field("Бренд", "brand", product.brand || "")}${field("Модель", "model", product.model || "")}</div><details><summary>Варианты и характеристики</summary><div class="form">${field("Цвет", "color", product.color || "")}${field("Размер", "size", product.size || "")}${field("Длина", "length", product.length || "")}${["available_colors", "available_sizes", "unavailable_colors", "unavailable_sizes"].map((key, index) => field(["Цвета через запятую", "Размеры через запятую", "Недоступные цвета", "Недоступные размеры"][index], key, Array.isArray(product[key]) ? product[key].join(", ") : "")).join("")}${textarea("Характеристики JSON", "attributes", typeof product.attributes === "string" ? product.attributes : JSON.stringify(product.attributes || {}))}</div></details>${select("Категория", "category", Object.keys(tree), product.category)}<div id="subcategories"></div>${field("Приложить фото", "image", "", "file", 'accept="image/jpeg,image/png,image/webp"')}<div class="gallery">${(
+    `<form class="form">${field("Название", "title", product.title || "", "text", 'required maxlength="220"')}${textarea("Описание", "description", product.description)}<div class="form-row">${field("Цена, сум", "price", product.price ?? "", "number", 'required min="0.01" step="0.01"')}${field("Старая цена", "old_price", product.old_price || "", "number", 'min="0" step="0.01"')}${field("Скидка, %", "discount_percent", product.discount_percent || 0, "number", 'min="0" max="99" step="0.01"')}</div><div class="form-row">${field("Количество", "stock_quantity", product.stock_quantity ?? "", "number", 'min="0" step="1"')}${select("Наличие", "stock_status", ["AVAILABLE", "OUT_OF_STOCK", "UNCONFIRMED"], product.stock_status || "AVAILABLE")}</div><div class="form-row">${field("Штрихкод / GTIN", "barcode", product.barcode || product.gtin || "", "text", 'inputmode="numeric"')}${field("Артикул", "sku", product.sku || "")}</div><div class="form-row">${field("Бренд", "brand", product.brand || "")}${field("Модель", "model", product.model || "")}</div><details><summary>Варианты и характеристики</summary><div class="form">${field("Цвет", "color", product.color || "")}${field("Размер", "size", product.size || "")}${field("Длина", "length", product.length || "")}${["available_colors", "available_sizes", "unavailable_colors", "unavailable_sizes"].map((key, index) => field(["Цвета через запятую", "Размеры через запятую", "Недоступные цвета", "Недоступные размеры"][index], key, Array.isArray(product[key]) ? product[key].join(", ") : "")).join("")}${textarea("Характеристики JSON", "attributes", typeof product.attributes === "string" ? product.attributes : JSON.stringify(product.attributes || {}))}</div></details>${select("Категория", "category", Object.keys(tree), product.category)}<div id="subcategories"></div><p class="field-note">AI: не отправляйте фото документов, банковских карт, PINFL и других персональных или платёжных данных. Изображения не проходят OCR/DLP-проверку.</p>${field("Приложить фото", "image", "", "file", 'accept="image/jpeg,image/png,image/webp"')}<div class="gallery">${(
       product.image_urls || [product.image_url]
     )
       .filter(Boolean)
@@ -532,7 +535,7 @@ async function go(next = route) {
       if (!event.target.matches('input[name="branch_picker"]')) return;
       branchSelect.value = event.target.value;
       picker.open = false;
-      branchSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      branchSelect.dispatchEvent(new window.Event("change", { bubbles: true }));
     });
     picker.addEventListener("keydown", event => {
       if (event.key === "Escape") { picker.open = false; picker.querySelector("summary").focus(); }
@@ -542,9 +545,16 @@ async function go(next = route) {
   $("[name=active_branch]")?.addEventListener("change",async e=>{allBranches=e.target.value==='all';if(!allBranches)shop=shops.find(s=>Number(s.id)===Number(e.target.value));else shop=shops.find(s=>Number(s.id)===rootId())||shop;page=0;await go();});
   try {
     const permission=routePermission[route];
+    if(!await ensureLegalAcceptance(api.request)){$('#view').innerHTML='<section class="card"><h2>Необходимо принять новые версии документов</h2>'+button('Открыть документы','retry')+'</section>';return;}
     if(!owner&&shop.permissions&&permission&&shop.permissions[permission]!==true)throw new Error('Владелец не разрешил этот раздел для вашего филиала.');
     let html = "";
-    if(route==='branches'){
+    if(route==='compliance'){
+      if(!owner)throw new Error('Проверку продавца заполняет владелец бизнеса.');
+      if(allBranches)html='<p class="notice">Выберите филиал для проверки его лицензии.</p>';
+      else html=await sellerComplianceView(api.request,endpoint('/compliance'));
+    }
+    else if(route==='ranking')html=rankingHelp();
+    else if(route==='branches'){
       if(!owner)throw new Error('Управление филиалами доступно владельцу бизнеса.');
       branchPageData=await branchesPage(api,rootId());html=branchPageData.html;
     }
@@ -705,6 +715,7 @@ async function go(next = route) {
     else html = empty("Страница не найдена");
     if (version !== generation) return;
     $("#view").innerHTML = html;
+    if(route==='compliance')bindSellerCompliance(api.request,endpoint('/compliance'),()=>go('compliance'));
     if (route === "chats") {
       const dispose = await mountChats($("#chatView"), {
         api,
