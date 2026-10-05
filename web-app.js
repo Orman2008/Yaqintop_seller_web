@@ -1,3 +1,4 @@
+import {pricingPreview,bindPricing} from './shared/pricing.js';
 import {branchesPage,bindBranches,mapPosLocations} from './seller-branches.js';
 import {ensureLegalAcceptance,sellerComplianceView,bindSellerCompliance,rankingHelp} from './shared/compliance.js';
 import { appearanceSettings } from "./shared/appearance.js";
@@ -548,6 +549,7 @@ async function go(next = route) {
     if(!await ensureLegalAcceptance(api.request)){$('#view').innerHTML='<section class="card"><h2>Необходимо принять новые версии документов</h2>'+button('Открыть документы','retry')+'</section>';return;}
     if(!owner&&shop.permissions&&permission&&shop.permissions[permission]!==true)throw new Error('Владелец не разрешил этот раздел для вашего филиала.');
     let html = "";
+    if(route==='plan')bindPricing(document.getElementById('view'));
     if(route==='compliance'){
       if(!owner)throw new Error('Проверку продавца заполняет владелец бизнеса.');
       if(allBranches)html='<p class="notice">Выберите филиал для проверки его лицензии.</p>';
@@ -689,7 +691,7 @@ async function go(next = route) {
             ["Стоимость", (p) => money(p.price || p.monthly_price)],
           ],
         ) +
-        `<div class="notice"><p>Для подключения или изменения тарифа обратитесь в поддержку.</p>${supportLinks(base, "seller")}</div>`;
+        pricingPreview() + `<div class="notice"><p>Для подключения или изменения тарифа обратитесь в поддержку.</p>${supportLinks(base, "seller")}</div>`;
     } else if (route === "qr") {
       const data = await api.request(endpoint("/qr/customers"));
       html =

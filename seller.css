@@ -13,3 +13,5 @@
 
 /* Transparent logo assets must not acquire a card background. */
 .site-header .site-brand img,.site-footer .site-brand img{display:block;background:transparent;border:0;padding:0;box-shadow:none;border-radius:0;object-fit:contain;flex-shrink:0}
+
+.billing-controls{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:24px 0}.billing-controls [aria-pressed=true]{background:var(--site-primary,#0994c8);color:white}.billing-controls [aria-pressed=false]{background:transparent;color:inherit}.price-card [data-billing-savings]{min-height:2.5em}
