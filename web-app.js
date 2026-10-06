@@ -1,4 +1,5 @@
 import {pricingPreview,bindPricing} from './shared/pricing.js';
+import {posPage,bindPos} from './seller-pos.js';
 import {branchesPage,bindBranches,mapPosLocations} from './seller-branches.js';
 import {ensureLegalAcceptance,sellerComplianceView,bindSellerCompliance,rankingHelp} from './shared/compliance.js';
 import { appearanceSettings } from "./shared/appearance.js";
@@ -61,6 +62,7 @@ const nav = [
   ["products", "Товары"],
   ["catalog", "Каталог Yaqintop seller"],
   ["imports", "Импорт и API"],
+  ["pos", "POS интеграции"],
   ["chats", "Чаты"],
   ["reviews", "Отзывы"],
   ["broadcasts", "Рассылка"],
@@ -572,6 +574,7 @@ async function go(next = route) {
     else if (route === "products") html = await loadProducts();
     else if (route === "catalog") html = await catalog();
     else if (route === "imports") html = await imports();
+    else if (route === "pos") html = allBranches ? heading('POS интеграции')+'<p>Выберите физический филиал.</p>' : await posPage(api,shop);
     else if (route === "store") html = await storePage();
     else if (route === "photo-navigation")
       html =
@@ -717,6 +720,7 @@ async function go(next = route) {
     else html = empty("Страница не найдена");
     if (version !== generation) return;
     $("#view").innerHTML = html;
+    if(route==='pos'&&!allBranches)bindPos(api,shop,()=>go('pos'));
     if(route==='compliance')bindSellerCompliance(api.request,endpoint('/compliance'),()=>go('compliance'));
     if (route === "chats") {
       const dispose = await mountChats($("#chatView"), {
