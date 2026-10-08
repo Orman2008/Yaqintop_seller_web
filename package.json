@@ -1,9 +1,9 @@
 {
-  "name":"mapmarket-seller-website",
+  "name": "yaqintop-seller-website",
   "private":true,
   "scripts":{
-    "build":"node ../mapmarket_web/tools/build.mjs --seller-only",
+    "build":"node ../yaqintop_web/tools/build.mjs --seller-only",
     "check":"node --check seller-site.js && node --check seller-theme.js && node --check web-app.js",
-    "preview":"node ../mapmarket_web/tools/serve.mjs"
+    "preview":"node ../yaqintop_web/tools/serve.mjs"
   }
 }

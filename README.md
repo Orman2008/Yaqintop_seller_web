@@ -1,4 +1,4 @@
-# MapMarket Seller Web
+# YAQINTOP Seller Web
 
 Публичный сайт отображается сразу из HTML и не зависит от авторизации или API. Seller Dashboard загружается по нажатию «Войти» / «Подключить магазин» и использует существующую авторизацию по Telegram/SMS и текущий backend.
 
@@ -10,9 +10,9 @@ npm run build
 npm run preview
 ```
 
-Откройте `http://127.0.0.1:8088/seller/`. Production assets находятся в `../mapmarket_web/dist/seller`. Размещайте эту папку целиком; все URL внутри сайта относительные и поддерживают корень домена и вложенный base path. ES modules требуют HTTP/HTTPS; открытие через `file://` позволяет читать landing, но не запускать кабинет.
+Откройте `http://127.0.0.1:8088/seller/`. Production assets находятся в `../yaqintop_web/dist/seller`. Размещайте эту папку целиком; все URL внутри сайта относительные и поддерживают корень домена и вложенный base path. ES modules требуют HTTP/HTTPS; открытие через `file://` позволяет читать landing, но не запускать кабинет.
 
-Сборка также синхронизирует `shared/` и `assets/` в исходную папку Seller Web, чтобы отдельный статический хостинг этого репозитория не давал 404 на зависимости. Это generated copies; редактируйте canonical модули в `../mapmarket_web/shared` и пересобирайте.
+Сборка также синхронизирует `shared/` и `assets/` в исходную папку Seller Web, чтобы отдельный статический хостинг этого репозитория не давал 404 на зависимости. Это generated copies; редактируйте canonical модули в `../yaqintop_web/shared` и пересобирайте.
 
 `runtime-config.js` содержит только публичный backend URL. Не помещайте в него API ключи, пароли или токены.
 

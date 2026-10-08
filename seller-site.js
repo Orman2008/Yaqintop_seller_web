@@ -24,13 +24,8 @@
   }
   async function loadDashboard() {
     if (modulePromise) return modulePromise;
-    for (const path of ['shared/design.css','shared/appearance.css','shared/vendor/leaflet/leaflet.css']) stylesheet(path);
+    for (const path of ['shared/design.css','shared/appearance.css']) stylesheet(path);
     modulePromise = (async () => {
-      if (!window.L) await new Promise((resolve, reject) => {
-        const script = document.createElement('script'); script.src = 'shared/vendor/leaflet/leaflet.js';
-        script.onload = resolve; script.onerror = () => reject(new Error('Не загружены файлы карты. Проверьте полноту размещения Seller Web.'));
-        document.head.append(script);
-      });
       return import('./web-app.js');
     })().catch(error => { modulePromise = null; throw error; });
     return modulePromise;
@@ -57,7 +52,7 @@
   window.addEventListener('seller-signed-out', () => {
     publicPage.hidden = false; dashboard.hidden = true;
     history.replaceState(null,'',location.pathname+location.search); window.scrollTo(0,0);
-    document.title = 'Yaqintop seller для продавцов — привлекайте покупателей рядом';
+    document.title = 'YAQINTOP SELLER для продавцов — привлекайте покупателей рядом';
   });
   if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const observer = new IntersectionObserver(entries => {

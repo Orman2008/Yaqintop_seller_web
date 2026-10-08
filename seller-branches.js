@@ -21,7 +21,7 @@ export function bindBranches(container,{api,root,branches,reload}){
   container.querySelectorAll('[data-branch-edit]').forEach(button=>button.onclick=()=>edit(branches.find(b=>Number(b.id)===Number(button.dataset.branchEdit))));
   container.querySelectorAll('[data-branch-archive]').forEach(button=>button.onclick=async()=>{if(!window.confirm('Архивировать филиал? Он исчезнет из поиска и карты; работа сотрудников будет остановлена. Товары, остатки, сотрудники и история сохранятся.'))return;try{await api.request(`/shops/${root}/branches/${button.dataset.branchArchive}`,{method:'DELETE',body:{confirmation:`ARCHIVE ${button.dataset.branchArchive}`}});await reload();toast('Филиал архивирован');}catch(error){toast(error.message);}});
   container.querySelector('[data-branch-contact]')?.addEventListener('click',()=>{
-    const modal=dialog(`<form class="form"><p>Расскажите, сколько филиалов у вашей сети и что вам необходимо.</p>${textarea('Ваш запрос','message','')}<button class="button">Отправить</button></form>`,'Сотрудничество с Yaqintop seller');
+    const modal=dialog(`<form class="form"><p>Расскажите, сколько филиалов у вашей сети и что вам необходимо.</p>${textarea('Ваш запрос','message','')}<button class="button">Отправить</button></form>`,'Сотрудничество с YAQINTOP SELLER');
     const form=modal.querySelector('form');form.elements.message.required=true;form.elements.message.maxLength=4000;
     form.onsubmit=e=>{e.preventDefault();submit(form,async values=>{await api.request(`/shops/${root}/branch-expansion`,{method:'POST',body:values});modal.close();toast('Заявка отправлена');});};
   });
